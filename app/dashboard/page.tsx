@@ -3,6 +3,13 @@ import { currentUser } from "@clerk/nextjs/server";
 export default async function DashboardPage() {
   const user = await currentUser();
 
+  // Sync user to database
+  await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/user/sync`, {
+    method: "POST",
+  });
+export default async function DashboardPage() {
+  const user = await currentUser();
+
   return (
     <div>
       <div style={{ marginBottom: 32 }}>

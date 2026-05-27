@@ -277,7 +277,7 @@ export default function ExchangesPage() {
               <div style={{ fontSize: 18, fontWeight: 800, color: currentExchange.color }}>
                 {currentExchange.name}
               </div>
-              
+              <a
                 href={currentExchange.url}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -328,7 +328,7 @@ export default function ExchangesPage() {
                 onClick={cancelForm}
                 style={{ background: "transparent", border: "none", color: "#6b7280", cursor: "pointer", fontSize: 22 }}
               >
-                x
+                ×
               </button>
             </div>
 

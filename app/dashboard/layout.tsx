@@ -54,7 +54,7 @@ export default async function DashboardLayout({
             { label: "Portfolio", href: "/dashboard/portfolio", icon: "💼" },
             { label: "Alerts", href: "/dashboard/alerts", icon: "🔔" },
           ].map((item) => (
-            
+            <a
               key={item.href}
               href={item.href}
               style={{

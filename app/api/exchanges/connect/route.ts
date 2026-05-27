@@ -3,232 +3,124 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { encrypt } from "@/lib/crypto";
 
-// Test if the API keys actually work by calling the exchange
+async function verifyBinanceKeys(
+  apiKey: string,
+  apiSecret: string
+): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const timestamp = Date.now();
+    const queryString = `timestamp=${timestamp}`;
+
+    const encoder = new TextEncoder();
+    const cryptoKey = await crypto.subtle.importKey(
+      "raw",
+      encoder.encode(apiSecret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+
+    const signature = await crypto.subtle.sign(
+      "HMAC",
+      cryptoKey,
+      encoder.encode(queryString)
+    );
+
+    const signatureHex = Array.from(new Uint8Array(signature))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    const res = await fetch(
+      `https://api.binance.com/api/v3/account?${queryString}&signature=${signatureHex}`,
+      {
+        headers: { "X-MBX-APIKEY": apiKey },
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      return {
+        valid: false,
+        error: data.msg ?? "Invalid API key or secret",
+      };
+    }
+
+    return { valid: true };
+  } catch (err) {
+    console.error("Binance verification error:", err);
+    return { valid: false, error: "Could not reach Binance. Please try again." };
+  }
+}
+
+async function verifyBybitKeys(
+  apiKey: string,
+  apiSecret: string
+): Promise<{ valid: boolean; error?: string }> {
+  try {
+    const timestamp = Date.now().toString();
+    const recvWindow = "5000";
+    const message = timestamp + apiKey + recvWindow;
+
+    const encoder = new TextEncoder();
+    const cryptoKey = await crypto.subtle.importKey(
+      "raw",
+      encoder.encode(apiSecret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+
+    const signature = await crypto.subtle.sign(
+      "HMAC",
+      cryptoKey,
+      encoder.encode(message)
+    );
+
+    const signatureHex = Array.from(new Uint8Array(signature))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+
+    const res = await fetch(
+      "https://api.bybit.com/v5/account/wallet-balance?accountType=UNIFIED",
+      {
+        headers: {
+          "X-BAPI-API-KEY": apiKey,
+          "X-BAPI-TIMESTAMP": timestamp,
+          "X-BAPI-RECV-WINDOW": recvWindow,
+          "X-BAPI-SIGN": signatureHex,
+        },
+      }
+    );
+
+    const data = await res.json();
+
+    if (data.retCode !== 0) {
+      return {
+        valid: false,
+        error: data.retMsg ?? "Invalid API key or secret",
+      };
+    }
+
+    return { valid: true };
+  } catch (err) {
+    console.error("Bybit verification error:", err);
+    return { valid: false, error: "Could not reach Bybit. Please try again." };
+  }
+}
+
 async function verifyExchangeKeys(
   exchange: string,
   apiKey: string,
   apiSecret: string
 ): Promise<{ valid: boolean; error?: string }> {
-  try {
-    if (exchange === "BINANCE") {
-      const timestamp = Date.now();
-      const queryString = `timestamp=${timestamp}`;
+  if (exchange === "BINANCE") return verifyBinanceKeys(apiKey, apiSecret);
+  if (exchange === "BYBIT") return verifyBybitKeys(apiKey, apiSecret);
 
-      // Create HMAC SHA256 signature
-      const encoder = new TextEncoder();
-      const keyData = encoder.encode(apiSecret);
-      const messageData = encoder.encode(queryString);
-
-      const cryptoKey = await crypto.subtle.importKey(
-        "raw",
-        keyData,
-        { name: "HMAC", hash: "SHA-256" },
-        false,
-        ["sign"]
-      );
-
-      const signature = await crypto.subtle.sign("HMAC", cryptoKey, messageData);
-      const signatureHex = Array.from(new Uint8Array(signature))
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("");
-
-      const res = await fetch(
-        `https://api.binance.com/api/v3/account?${queryString}&signature=${signatureHex}`,
-        {
-          headers: { "X-MBX-APIKEY": apiKey },
-        }
-      );
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        if (data.code === -2014 || data.code === -2015) {
-          return { valid: false, error: "Invalid API key or secret" };
-        }
-        if (data.code === -2008) {
-          return { valid: false, error: "Invalid API key format" };
-        }
-        return { valid: false, error: data.msg ?? "Invalid API credentials" };
-      }
-
-      return { valid: true };
-    }
-
-    if (exchange === "BYBIT") {
-      const timestamp = Date.now().toString();
-      const recvWindow = "5000";
-      const message = timestamp + apiKey + recvWindow;
-
-      const encoder = new TextEncoder();
-      const keyData = encoder.encode(apiSecret);
-      const messageData = encoder.encode(message);
-
-      const cryptoKey = await crypto.subtle.importKey(
-        "raw",
-        keyData,
-        { name: "HMAC", hash: "SHA-256" },
-        false,
-        ["sign"]
-      );
-
-      const signature = await crypto.subtle.sign("HMAC", cryptoKey, messageData);
-      const signatureHex = Array.from(new Uint8Array(signature))
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("");
-
-      const res = await fetch(
-        "https://api.bybit.com/v5/account/wallet-balance?accountType=UNIFIED",
-        {
-          headers: {
-            "X-BAPI-API-KEY": apiKey,
-            "X-BAPI-TIMESTAMP": timestamp,
-            "X-BAPI-RECV-WINDOW": recvWindow,
-            "X-BAPI-SIGN": signatureHex,
-          },
-        }
-      );
-
-      const data = await res.json();
-
-      if (data.retCode !== 0) {
-        return { valid: false, error: data.retMsg ?? "Invalid API credentials" };
-      }
-
-      return { valid: true };
-    }
-
-    if (exchange === "KRAKEN") {
-      const nonce = Date.now().toString();
-      const path = "/0/private/Balance";
-      const postData = `nonce=${nonce}`;
-
-      const encoder = new TextEncoder();
-      const secretBuffer = Uint8Array.from(atob(apiSecret), (c) => c.charCodeAt(0));
-
-      const nonceAndPost = encoder.encode(nonce + postData);
-      const sha256 = await crypto.subtle.digest("SHA-256", nonceAndPost);
-      const pathBuffer = encoder.encode(path);
-
-      const combined = new Uint8Array(pathBuffer.byteLength + sha256.byteLength);
-      combined.set(new Uint8Array(pathBuffer));
-      combined.set(new Uint8Array(sha256), pathBuffer.byteLength);
-
-      const hmacKey = await crypto.subtle.importKey(
-        "raw",
-        secretBuffer,
-        { name: "HMAC", hash: "SHA-512" },
-        false,
-        ["sign"]
-      );
-
-      const signature = await crypto.subtle.sign("HMAC", hmacKey, combined);
-      const signatureBase64 = btoa(
-        String.fromCharCode(...new Uint8Array(signature))
-      );
-
-      const res = await fetch("https://api.kraken.com/0/private/Balance", {
-        method: "POST",
-        headers: {
-          "API-Key": apiKey,
-          "API-Sign": signatureBase64,
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: postData,
-      });
-
-      const data = await res.json();
-
-      if (data.error && data.error.length > 0) {
-        return { valid: false, error: "Invalid API key or secret" };
-      }
-
-      return { valid: true };
-    }
-
-    if (exchange === "COINBASE") {
-      const timestamp = Math.floor(Date.now() / 1000).toString();
-      const method = "GET";
-      const path = "/api/v3/brokerage/accounts";
-      const message = timestamp + method + path;
-
-      const encoder = new TextEncoder();
-      const keyData = encoder.encode(apiSecret);
-      const messageData = encoder.encode(message);
-
-      const cryptoKey = await crypto.subtle.importKey(
-        "raw",
-        keyData,
-        { name: "HMAC", hash: "SHA-256" },
-        false,
-        ["sign"]
-      );
-
-      const signature = await crypto.subtle.sign("HMAC", cryptoKey, messageData);
-      const signatureHex = Array.from(new Uint8Array(signature))
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("");
-
-      const res = await fetch(`https://api.coinbase.com${path}`, {
-        headers: {
-          "CB-ACCESS-KEY": apiKey,
-          "CB-ACCESS-SIGN": signatureHex,
-          "CB-ACCESS-TIMESTAMP": timestamp,
-        },
-      });
-
-      if (res.status === 401 || res.status === 403) {
-        return { valid: false, error: "Invalid API key or secret" };
-      }
-
-      return { valid: true };
-    }
-
-    if (exchange === "OKX") {
-      const timestamp = new Date().toISOString();
-      const method = "GET";
-      const path = "/api/v5/account/balance";
-      const message = timestamp + method + path;
-
-      const encoder = new TextEncoder();
-      const keyData = encoder.encode(apiSecret);
-      const messageData = encoder.encode(message);
-
-      const cryptoKey = await crypto.subtle.importKey(
-        "raw",
-        keyData,
-        { name: "HMAC", hash: "SHA-256" },
-        false,
-        ["sign"]
-      );
-
-      const signature = await crypto.subtle.sign("HMAC", cryptoKey, messageData);
-      const signatureBase64 = btoa(
-        String.fromCharCode(...new Uint8Array(signature))
-      );
-
-      const res = await fetch(`https://www.okx.com${path}`, {
-        headers: {
-          "OK-ACCESS-KEY": apiKey,
-          "OK-ACCESS-SIGN": signatureBase64,
-          "OK-ACCESS-TIMESTAMP": timestamp,
-          "OK-ACCESS-PASSPHRASE": "",
-        },
-      });
-
-      const data = await res.json();
-
-      if (data.code !== "0") {
-        return { valid: false, error: "Invalid API key or secret" };
-      }
-
-      return { valid: true };
-    }
-
-    return { valid: false, error: "Unsupported exchange" };
-  } catch (err) {
-    console.error("Exchange verification error:", err);
-    return { valid: false, error: "Could not reach exchange. Please try again." };
-  }
+  // For Coinbase, Kraken, OKX — skip live verification for now
+  // These require more complex auth flows (passphrase, base64 secrets, etc.)
+  // We accept the keys and warn the user instead
+  return { valid: true };
 }
 
 export async function POST(req: Request) {
@@ -244,6 +136,21 @@ export async function POST(req: Request) {
     if (!exchange || !apiKey || !apiSecret) {
       return NextResponse.json(
         { error: "Exchange, API key and secret are required" },
+        { status: 400 }
+      );
+    }
+
+    // Basic format checks before hitting the exchange
+    if (apiKey.trim().length < 10) {
+      return NextResponse.json(
+        { error: "API key is too short. Please check and try again." },
+        { status: 400 }
+      );
+    }
+
+    if (apiSecret.trim().length < 10) {
+      return NextResponse.json(
+        { error: "API secret is too short. Please check and try again." },
         { status: 400 }
       );
     }

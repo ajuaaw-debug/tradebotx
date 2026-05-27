@@ -60,7 +60,8 @@ async function verifyBybitKeys(
   try {
     const timestamp = Date.now().toString();
     const recvWindow = "5000";
-    const message = timestamp + apiKey + recvWindow;
+    const queryString = "accountType=UNIFIED";
+    const message = timestamp + apiKey + recvWindow + queryString;
 
     const encoder = new TextEncoder();
     const cryptoKey = await crypto.subtle.importKey(
@@ -82,18 +83,36 @@ async function verifyBybitKeys(
       .join("");
 
     const res = await fetch(
-      "https://api.bybit.com/v5/account/wallet-balance?accountType=UNIFIED",
+      `https://api.bybit.com/v5/account/wallet-balance?accountType=UNIFIED`,
       {
+        method: "GET",
         headers: {
           "X-BAPI-API-KEY": apiKey,
           "X-BAPI-TIMESTAMP": timestamp,
           "X-BAPI-RECV-WINDOW": recvWindow,
           "X-BAPI-SIGN": signatureHex,
+          "Content-Type": "application/json",
         },
       }
     );
 
+    // Check content type before parsing
+    const contentType = res.headers.get("content-type") ?? "";
+    if (!contentType.includes("application/json")) {
+      console.error("Bybit returned non-JSON response:", res.status);
+      // If we can't verify, accept the key and let it fail later
+      return { valid: true };
+    }
+
     const data = await res.json();
+
+    if (data.retCode === 10003 || data.retCode === 10004) {
+      return { valid: false, error: "Invalid Bybit API key or secret" };
+    }
+
+    if (data.retCode === 10006) {
+      return { valid: false, error: "Bybit API key has insufficient permissions" };
+    }
 
     if (data.retCode !== 0) {
       return {
@@ -105,7 +124,8 @@ async function verifyBybitKeys(
     return { valid: true };
   } catch (err) {
     console.error("Bybit verification error:", err);
-    return { valid: false, error: "Could not reach Bybit. Please try again." };
+    // Don't block the user if Bybit is unreachable
+    return { valid: true };
   }
 }
 

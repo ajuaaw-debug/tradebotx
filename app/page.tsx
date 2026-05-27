@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Home() {
   return (
     <main style={{
@@ -47,7 +49,7 @@ export default function Home() {
         </p>
 
         <div style={{ display: "flex", gap: 16, justifyContent: "center", marginBottom: 80 }}>
-          <button style={{
+          <Link href="/sign-up" style={{
             background: "#7c3aed",
             color: "white",
             border: "none",
@@ -55,11 +57,13 @@ export default function Home() {
             borderRadius: 8,
             fontSize: 15,
             fontWeight: 500,
-            cursor: "pointer"
+            cursor: "pointer",
+            textDecoration: "none",
+            display: "inline-block",
           }}>
             Get Early Access
-          </button>
-          <button style={{
+          </Link>
+          <Link href="/sign-in" style={{
             background: "transparent",
             color: "#d1d5db",
             border: "1px solid #374151",
@@ -67,10 +71,12 @@ export default function Home() {
             borderRadius: 8,
             fontSize: 15,
             fontWeight: 500,
-            cursor: "pointer"
+            cursor: "pointer",
+            textDecoration: "none",
+            display: "inline-block",
           }}>
-            View Roadmap
-          </button>
+            Sign In
+          </Link>
         </div>
 
         <div style={{

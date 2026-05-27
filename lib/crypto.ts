@@ -1,12 +1,12 @@
 const ALGORITHM = "AES-GCM";
 const KEY_LENGTH = 256;
 
-function hexToBuffer(hex: string): Uint8Array {
+function hexToBuffer(hex: string): ArrayBuffer {
   const bytes = new Uint8Array(hex.length / 2);
   for (let i = 0; i < hex.length; i += 2) {
     bytes[i / 2] = parseInt(hex.slice(i, i + 2), 16);
   }
-  return bytes;
+  return bytes.buffer as ArrayBuffer;
 }
 
 function bufferToHex(buffer: ArrayBuffer): string {
@@ -37,7 +37,7 @@ export async function encrypt(plaintext: string): Promise<string> {
     key,
     encoded
   );
-  const ivHex = bufferToHex(iv.buffer);
+  const ivHex = bufferToHex(iv.buffer as ArrayBuffer);
   const cipherHex = bufferToHex(ciphertext);
   return `${ivHex}:${cipherHex}`;
 }

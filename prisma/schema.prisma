@@ -1,0 +1,420 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  FREE_USER
+  PRO_USER
+  BOT_CREATOR
+  ADMIN
+}
+
+enum UserTier {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum Exchange {
+  BINANCE
+  BYBIT
+  COINBASE
+  KRAKEN
+  OKX
+}
+
+enum ConnectionMode {
+  READ_ONLY
+  TRADING
+  TESTNET
+}
+
+enum StrategyCategory {
+  SCALPING
+  SWING_TRADING
+  GRID_BOT
+  DCA_BOT
+  MEME_COIN_SNIPER
+  ARBITRAGE
+  MOMENTUM
+  TREND_FOLLOWING
+  FUTURES
+  SPOT
+}
+
+enum StrategyStatus {
+  DRAFT
+  UNDER_REVIEW
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+enum BotStatus {
+  CREATED
+  RUNNING
+  PAUSED
+  STOPPED
+  ERROR
+  KILL_SWITCHED
+}
+
+enum TradeSide {
+  BUY
+  SELL
+}
+
+enum TradeStatus {
+  OPEN
+  CLOSED
+  CANCELLED
+  PARTIAL
+}
+
+enum Plan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum SubStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  TRIALING
+  INCOMPLETE
+}
+
+enum AlertType {
+  TRADE_OPENED
+  TRADE_CLOSED
+  TP_HIT
+  SL_HIT
+  KILL_SWITCH_TRIGGERED
+  DAILY_LOSS_LIMIT
+  WHALE_MOVEMENT
+  VOLATILITY_WARNING
+  UNUSUAL_ACTIVITY
+  BOT_ERROR
+  BOT_STARTED
+  BOT_STOPPED
+}
+
+enum AlertChannel {
+  EMAIL
+  TELEGRAM
+  DISCORD
+  IN_APP
+}
+
+enum RunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum CopyStatus {
+  ACTIVE
+  PAUSED
+  STOPPED
+}
+
+model User {
+  id             String    @id @default(uuid())
+  clerkId        String    @unique @map("clerk_id")
+  email          String    @unique
+  fullName       String?   @map("full_name")
+  avatarUrl      String?   @map("avatar_url")
+  role           UserRole  @default(FREE_USER)
+  tier           UserTier  @default(FREE)
+  twoFaEnabled   Boolean   @default(false) @map("two_fa_enabled")
+  telegramChatId String?   @map("telegram_chat_id")
+  discordWebhook String?   @map("discord_webhook")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  sessions               UserSession[]
+  exchangeConnections    ExchangeConnection[]
+  strategies             Strategy[]                @relation("StrategyCreator")
+  botInstances           BotInstance[]
+  backtestRuns           BacktestRun[]
+  subscription           Subscription?
+  marketplaceSubsBuyer   MarketplaceSubscription[] @relation("Buyer")
+  copyRelationsFollower  CopyRelation[]            @relation("Follower")
+  copyRelationsTrader    CopyRelation[]            @relation("Trader")
+  alerts                 Alert[]
+  auditLogs              AuditLog[]
+
+  @@map("users")
+}
+
+model UserSession {
+  id                String   @id @default(uuid())
+  userId            String   @map("user_id")
+  deviceFingerprint String?  @map("device_fingerprint")
+  ipAddress         String?  @map("ip_address")
+  userAgent         String?  @map("user_agent")
+  isSuspicious      Boolean  @default(false) @map("is_suspicious")
+  lastActive        DateTime @default(now()) @map("last_active")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([ipAddress])
+  @@map("user_sessions")
+}
+
+model ExchangeConnection {
+  id           String         @id @default(uuid())
+  userId       String         @map("user_id")
+  exchange     Exchange
+  apiKeyEnc    String         @map("api_key_enc")
+  apiSecretEnc String         @map("api_secret_enc")
+  label        String?
+  mode         ConnectionMode @default(READ_ONLY)
+  permissions  Json           @default("{}")
+  isActive     Boolean        @default(true) @map("is_active")
+  verifiedAt   DateTime?      @map("verified_at")
+  createdAt    DateTime       @default(now()) @map("created_at")
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  botInstances BotInstance[]
+
+  @@index([userId])
+  @@map("exchange_connections")
+}
+
+model Strategy {
+  id           String           @id @default(uuid())
+  creatorId    String           @map("creator_id")
+  name         String
+  description  String?
+  category     StrategyCategory
+  config       Json
+  priceMonthly Decimal          @default(0) @map("price_monthly") @db.Decimal(10, 2)
+  riskScore    Int              @default(5) @map("risk_score")
+  status       StrategyStatus   @default(DRAFT)
+  isPublic     Boolean          @default(false) @map("is_public")
+  publishedAt  DateTime?        @map("published_at")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+
+  creator      User                      @relation("StrategyCreator", fields: [creatorId], references: [id])
+  stats        StrategyStats?
+  botInstances BotInstance[]
+  backtestRuns BacktestRun[]
+  mktSubs      MarketplaceSubscription[]
+
+  @@index([category])
+  @@index([status, isPublic])
+  @@index([creatorId])
+  @@map("strategies")
+}
+
+model StrategyStats {
+  id            String   @id @default(uuid())
+  strategyId    String   @unique @map("strategy_id")
+  roi30d        Decimal? @map("roi_30d") @db.Decimal(10, 4)
+  roi90d        Decimal? @map("roi_90d") @db.Decimal(10, 4)
+  roi1y         Decimal? @map("roi_1y") @db.Decimal(10, 4)
+  maxDrawdown   Decimal? @map("max_drawdown") @db.Decimal(10, 4)
+  winRate       Decimal? @map("win_rate") @db.Decimal(5, 4)
+  sharpeRatio   Decimal? @map("sharpe_ratio") @db.Decimal(10, 4)
+  profitFactor  Decimal? @map("profit_factor") @db.Decimal(10, 4)
+  followerCount Int      @default(0) @map("follower_count")
+  totalTrades   Int      @default(0) @map("total_trades")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  strategy Strategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+
+  @@map("strategy_stats")
+}
+
+model BotInstance {
+  id               String    @id @default(uuid())
+  userId           String    @map("user_id")
+  strategyId       String    @map("strategy_id")
+  exchangeConnId   String    @map("exchange_conn_id")
+  paperMode        Boolean   @default(false) @map("paper_mode")
+  status           BotStatus @default(CREATED)
+  runtimeConfig    Json      @default("{}") @map("runtime_config")
+  allocatedCapital Decimal   @default(0) @map("allocated_capital") @db.Decimal(20, 8)
+  currentBalance   Decimal   @default(0) @map("current_balance") @db.Decimal(20, 8)
+  totalPnl         Decimal   @default(0) @map("total_pnl") @db.Decimal(20, 8)
+  startedAt        DateTime? @map("started_at")
+  stoppedAt        DateTime? @map("stopped_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  user         User               @relation(fields: [userId], references: [id])
+  strategy     Strategy           @relation(fields: [strategyId], references: [id])
+  exchangeConn ExchangeConnection @relation(fields: [exchangeConnId], references: [id])
+  trades       Trade[]
+  riskConfig   RiskConfig?
+  alerts       Alert[]
+
+  @@index([userId, status])
+  @@index([strategyId])
+  @@map("bot_instances")
+}
+
+model Trade {
+  id              String      @id @default(uuid())
+  botId           String      @map("bot_id")
+  symbol          String
+  side            TradeSide
+  quantity        Decimal     @db.Decimal(30, 10)
+  entryPrice      Decimal     @map("entry_price") @db.Decimal(20, 8)
+  exitPrice       Decimal?    @map("exit_price") @db.Decimal(20, 8)
+  pnl             Decimal?    @db.Decimal(20, 8)
+  pnlPct          Decimal?    @map("pnl_pct") @db.Decimal(10, 6)
+  fee             Decimal?    @db.Decimal(20, 8)
+  exchangeOrderId String?     @map("exchange_order_id")
+  tradeStatus     TradeStatus @default(OPEN) @map("trade_status")
+  openedAt        DateTime    @default(now()) @map("opened_at")
+  closedAt        DateTime?   @map("closed_at")
+
+  bot BotInstance @relation(fields: [botId], references: [id], onDelete: Cascade)
+
+  @@index([botId, openedAt(sort: Desc)])
+  @@index([symbol])
+  @@map("trades")
+}
+
+model RiskConfig {
+  id                  String   @id @default(uuid())
+  botId               String   @unique @map("bot_id")
+  maxDailyLossPct     Decimal  @default(5) @map("max_daily_loss_pct") @db.Decimal(5, 2)
+  killSwitchPct       Decimal  @default(20) @map("kill_switch_pct") @db.Decimal(5, 2)
+  maxLeverage         Int      @default(1) @map("max_leverage")
+  positionSizePct     Decimal  @default(5) @map("position_size_pct") @db.Decimal(5, 2)
+  volatilityThreshold Decimal  @default(5) @map("volatility_threshold") @db.Decimal(5, 2)
+  killSwitchTriggered Boolean  @default(false) @map("kill_switch_triggered")
+  dailyLossTriggered  Boolean  @default(false) @map("daily_loss_triggered")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  bot BotInstance @relation(fields: [botId], references: [id], onDelete: Cascade)
+
+  @@map("risk_configs")
+}
+
+model BacktestRun {
+  id             String    @id @default(uuid())
+  strategyId     String    @map("strategy_id")
+  userId         String    @map("user_id")
+  fromDate       DateTime  @map("from_date")
+  toDate         DateTime  @map("to_date")
+  timeframe      String
+  initialCapital Decimal   @map("initial_capital") @db.Decimal(20, 2)
+  resultMetrics  Json?     @map("result_metrics")
+  equityCurve    Json?     @map("equity_curve")
+  tradeLog       Json?     @map("trade_log")
+  runStatus      RunStatus @default(PENDING) @map("run_status")
+  errorMessage   String?   @map("error_message")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  completedAt    DateTime? @map("completed_at")
+
+  strategy Strategy @relation(fields: [strategyId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([strategyId])
+  @@map("backtest_runs")
+}
+
+model Subscription {
+  id               String    @id @default(uuid())
+  userId           String    @unique @map("user_id")
+  plan             Plan      @default(FREE)
+  stripeCustomerId String?   @map("stripe_customer_id")
+  stripeSubId      String?   @unique @map("stripe_sub_id")
+  subStatus        SubStatus @default(ACTIVE) @map("sub_status")
+  currentPeriodEnd DateTime? @map("current_period_end")
+  canceledAt       DateTime? @map("canceled_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+model MarketplaceSubscription {
+  id           String    @id @default(uuid())
+  subscriberId String    @map("subscriber_id")
+  strategyId   String    @map("strategy_id")
+  stripeSubId  String?   @unique @map("stripe_sub_id")
+  amount       Decimal   @db.Decimal(10, 2)
+  platformFee  Decimal   @map("platform_fee") @db.Decimal(10, 2)
+  subStatus    SubStatus @default(ACTIVE) @map("sub_status")
+  startedAt    DateTime  @default(now()) @map("started_at")
+  endedAt      DateTime? @map("ended_at")
+
+  subscriber User     @relation("Buyer", fields: [subscriberId], references: [id])
+  strategy   Strategy @relation(fields: [strategyId], references: [id])
+
+  @@index([subscriberId])
+  @@index([strategyId])
+  @@map("marketplace_subscriptions")
+}
+
+model CopyRelation {
+  id                String    @id @default(uuid())
+  followerId        String    @map("follower_id")
+  traderId          String    @map("trader_id")
+  riskAllocationPct Decimal   @default(10) @map("risk_allocation_pct") @db.Decimal(5, 2)
+  maxCopyAmount     Decimal?  @map("max_copy_amount") @db.Decimal(20, 2)
+  isActive          Boolean   @default(true) @map("is_active")
+  startedAt         DateTime  @default(now()) @map("started_at")
+  stoppedAt         DateTime? @map("stopped_at")
+
+  follower User @relation("Follower", fields: [followerId], references: [id])
+  trader   User @relation("Trader", fields: [traderId], references: [id])
+
+  @@unique([followerId, traderId])
+  @@index([traderId])
+  @@map("copy_relations")
+}
+
+model Alert {
+  id        String       @id @default(uuid())
+  userId    String       @map("user_id")
+  botId     String?      @map("bot_id")
+  alertType AlertType    @map("alert_type")
+  channel   AlertChannel
+  payload   Json         @default("{}")
+  isSent    Boolean      @default(false) @map("is_sent")
+  sentAt    DateTime?    @map("sent_at")
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bot  BotInstance? @relation(fields: [botId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([isSent])
+  @@map("alerts")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?  @map("user_id")
+  action    String
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([action])
+  @@map("audit_logs")
+}

@@ -244,7 +244,7 @@ async function verifyOkxKeys(
   passphrase?: string
 ): Promise<{ valid: boolean; error?: string }> {
   if (!passphrase) {
-    return { valid: false, error: "OKX requires a passphrase. Please enter it in the API Secret field as: secret|passphrase" };
+    return { valid: false, error: "OKX requires a passphrase. Please fill in the Passphrase field." };
   }
 
   try {

@@ -106,10 +106,11 @@ const EXCHANGES: Exchange[] = [
       "Click your profile then API Management",
       "Click Create API Key",
       "Choose Trading as the purpose",
-      "Set a passphrase and remember it",
+      "Set a passphrase — you will need it below",
       "Enable Read permission for monitoring",
       "Enable Trade only for live trading",
       "Never enable Withdraw permission",
+      "Copy your API Key, Secret Key, and Passphrase into the form",
     ],
   },
 ];
@@ -131,6 +132,7 @@ export default function ExchangesPage() {
     exchange: "BINANCE",
     apiKey: "",
     apiSecret: "",
+    passphrase: "",
     label: "",
     mode: "READ_ONLY",
   });
@@ -152,7 +154,7 @@ export default function ExchangesPage() {
   }, []);
 
   function selectExchange(id: string) {
-    setForm({ exchange: id, apiKey: "", apiSecret: "", label: "", mode: "READ_ONLY" });
+    setForm({ exchange: id, apiKey: "", apiSecret: "", passphrase: "", label: "", mode: "READ_ONLY" });
     setError("");
     setSuccess("");
     setShowForm(true);
@@ -181,7 +183,7 @@ export default function ExchangesPage() {
       }
       setSuccess(form.exchange + " connected successfully!");
       setShowForm(false);
-      setForm({ exchange: "BINANCE", apiKey: "", apiSecret: "", label: "", mode: "READ_ONLY" });
+      setForm({ exchange: "BINANCE", apiKey: "", apiSecret: "", passphrase: "", label: "", mode: "READ_ONLY" });
       fetchConnections();
     } catch {
       setError("Something went wrong. Please try again.");
@@ -208,6 +210,7 @@ export default function ExchangesPage() {
 
   const currentExchange = EXCHANGES.find((e) => e.id === form.exchange);
   const connectedIds = connections.map((c) => c.exchange);
+  const isOKX = form.exchange === "OKX";
 
   return (
     <div>
@@ -259,9 +262,7 @@ export default function ExchangesPage() {
                     {ex.name}
                   </div>
                   {isConnected && (
-                    <div style={{ fontSize: 11, color: "#10b981", fontWeight: 600 }}>
-                      Connected
-                    </div>
+                    <div style={{ fontSize: 11, color: "#10b981", fontWeight: 600 }}>Connected</div>
                   )}
                 </button>
               );
@@ -272,6 +273,7 @@ export default function ExchangesPage() {
 
       {showForm && currentExchange && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, marginBottom: 32 }}>
+          {/* Left: instructions */}
           <div style={{ background: "#0f0f0f", border: "1px solid " + currentExchange.border, borderRadius: 12, padding: 28 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
               <div style={{ fontSize: 18, fontWeight: 800, color: currentExchange.color }}>
@@ -303,49 +305,35 @@ export default function ExchangesPage() {
                   }}>
                     {i + 1}
                   </div>
-                  <div style={{ fontSize: 13, color: "#9ca3af", lineHeight: 1.6 }}>
-                    {step}
-                  </div>
+                  <div style={{ fontSize: 13, color: "#9ca3af", lineHeight: 1.6 }}>{step}</div>
                 </div>
               ))}
             </div>
             <div style={{ marginTop: 20, background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)", borderRadius: 8, padding: "12px 16px" }}>
-              <div style={{ fontSize: 12, color: "#f59e0b", fontWeight: 600, marginBottom: 4 }}>
-                Security reminder
-              </div>
+              <div style={{ fontSize: 12, color: "#f59e0b", fontWeight: 600, marginBottom: 4 }}>Security reminder</div>
               <div style={{ fontSize: 12, color: "#92400e", lineHeight: 1.6 }}>
                 Never enable withdrawal permissions. We only need read and trade access.
               </div>
             </div>
           </div>
 
+          {/* Right: form */}
           <div style={{ background: "#0f0f0f", border: "1px solid #1f2937", borderRadius: 12, padding: 28 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-              <h2 style={{ fontSize: 18, fontWeight: 600, color: "white" }}>
-                Enter your API keys
-              </h2>
-              <button
-                onClick={cancelForm}
-                style={{ background: "transparent", border: "none", color: "#6b7280", cursor: "pointer", fontSize: 22 }}
-              >
-                ×
-              </button>
+              <h2 style={{ fontSize: 18, fontWeight: 600, color: "white" }}>Enter your API keys</h2>
+              <button onClick={cancelForm} style={{ background: "transparent", border: "none", color: "#6b7280", cursor: "pointer", fontSize: 22 }}>×</button>
             </div>
 
             <form onSubmit={handleConnect}>
               <div style={{ marginBottom: 16 }}>
-                <label style={{ display: "block", fontSize: 13, color: "#9ca3af", marginBottom: 6 }}>
-                  Exchange
-                </label>
+                <label style={{ display: "block", fontSize: 13, color: "#9ca3af", marginBottom: 6 }}>Exchange</label>
                 <div style={{ background: "#1a1a1a", border: "1px solid " + currentExchange.border, color: currentExchange.color, padding: "10px 12px", borderRadius: 8, fontSize: 14, fontWeight: 600 }}>
                   {currentExchange.name}
                 </div>
               </div>
 
               <div style={{ marginBottom: 16 }}>
-                <label style={{ display: "block", fontSize: 13, color: "#9ca3af", marginBottom: 6 }}>
-                  Label (optional)
-                </label>
+                <label style={{ display: "block", fontSize: 13, color: "#9ca3af", marginBottom: 6 }}>Label (optional)</label>
                 <input
                   type="text"
                   placeholder={"My " + currentExchange.name + " Account"}
@@ -356,9 +344,7 @@ export default function ExchangesPage() {
               </div>
 
               <div style={{ marginBottom: 16 }}>
-                <label style={{ display: "block", fontSize: 13, color: "#9ca3af", marginBottom: 6 }}>
-                  Mode
-                </label>
+                <label style={{ display: "block", fontSize: 13, color: "#9ca3af", marginBottom: 6 }}>Mode</label>
                 <select
                   value={form.mode}
                   onChange={(e) => setForm({ ...form, mode: e.target.value })}
@@ -371,9 +357,7 @@ export default function ExchangesPage() {
               </div>
 
               <div style={{ marginBottom: 16 }}>
-                <label style={{ display: "block", fontSize: 13, color: "#9ca3af", marginBottom: 6 }}>
-                  API Key
-                </label>
+                <label style={{ display: "block", fontSize: 13, color: "#9ca3af", marginBottom: 6 }}>API Key</label>
                 <input
                   type="text"
                   placeholder="Paste your API key here"
@@ -385,10 +369,8 @@ export default function ExchangesPage() {
                 />
               </div>
 
-              <div style={{ marginBottom: 24 }}>
-                <label style={{ display: "block", fontSize: 13, color: "#9ca3af", marginBottom: 6 }}>
-                  API Secret
-                </label>
+              <div style={{ marginBottom: isOKX ? 16 : 24 }}>
+                <label style={{ display: "block", fontSize: 13, color: "#9ca3af", marginBottom: 6 }}>API Secret</label>
                 <input
                   type="password"
                   placeholder="Paste your API secret here"
@@ -399,6 +381,28 @@ export default function ExchangesPage() {
                   style={{ width: "100%", background: "#1a1a1a", border: "1px solid #374151", color: "white", padding: "10px 12px", borderRadius: 8, fontSize: 14, boxSizing: "border-box", fontFamily: "monospace" }}
                 />
               </div>
+
+              {/* OKX passphrase field */}
+              {isOKX && (
+                <div style={{ marginBottom: 24 }}>
+                  <label style={{ display: "block", fontSize: 13, color: "#9ca3af", marginBottom: 6 }}>
+                    Passphrase
+                    <span style={{ color: "#ef4444", marginLeft: 4 }}>*</span>
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="The passphrase you set when creating the API key"
+                    value={form.passphrase}
+                    onChange={(e) => setForm({ ...form, passphrase: e.target.value })}
+                    required
+                    autoComplete="off"
+                    style={{ width: "100%", background: "#1a1a1a", border: "1px solid rgba(255,255,255,0.15)", color: "white", padding: "10px 12px", borderRadius: 8, fontSize: 14, boxSizing: "border-box", fontFamily: "monospace" }}
+                  />
+                  <div style={{ fontSize: 11, color: "#6b7280", marginTop: 5 }}>
+                    OKX requires a passphrase in addition to your API key and secret.
+                  </div>
+                </div>
+              )}
 
               {error && (
                 <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444", padding: "10px 14px", borderRadius: 8, marginBottom: 16, fontSize: 13 }}>
@@ -444,12 +448,8 @@ export default function ExchangesPage() {
                       {conn.exchange.slice(0, 3)}
                     </div>
                     <div>
-                      <div style={{ color: "white", fontWeight: 600, fontSize: 15, marginBottom: 3 }}>
-                        {conn.label}
-                      </div>
-                      <div style={{ color: "#6b7280", fontSize: 12 }}>
-                        Connected {new Date(conn.createdAt).toLocaleDateString()}
-                      </div>
+                      <div style={{ color: "white", fontWeight: 600, fontSize: 15, marginBottom: 3 }}>{conn.label}</div>
+                      <div style={{ color: "#6b7280", fontSize: 12 }}>Connected {new Date(conn.createdAt).toLocaleDateString()}</div>
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
@@ -480,19 +480,13 @@ export default function ExchangesPage() {
       {!loading && connections.length === 0 && !showForm && (
         <div style={{ background: "#0f0f0f", border: "1px solid #1f2937", borderRadius: 12, padding: 48, textAlign: "center", marginBottom: 32 }}>
           <div style={{ fontSize: 40, marginBottom: 16 }}>🔌</div>
-          <div style={{ color: "white", fontSize: 18, fontWeight: 600, marginBottom: 8 }}>
-            No exchanges connected yet
-          </div>
-          <div style={{ color: "#6b7280", fontSize: 14 }}>
-            Pick an exchange above to get started.
-          </div>
+          <div style={{ color: "white", fontSize: 18, fontWeight: 600, marginBottom: 8 }}>No exchanges connected yet</div>
+          <div style={{ color: "#6b7280", fontSize: 14 }}>Pick an exchange above to get started.</div>
         </div>
       )}
 
       <div style={{ background: "#0f0f0f", border: "1px solid #1f2937", borderRadius: 12, padding: 24 }}>
-        <div style={{ fontSize: 15, fontWeight: 600, color: "white", marginBottom: 16 }}>
-          How we keep your keys safe
-        </div>
+        <div style={{ fontSize: 15, fontWeight: 600, color: "white", marginBottom: 16 }}>How we keep your keys safe</div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
           {[
             { icon: "🔐", title: "AES-256 encrypted", desc: "Keys are encrypted before touching our database. Plain text keys never exist in storage." },

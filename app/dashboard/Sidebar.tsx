@@ -1,5 +1,4 @@
 "use client";
-
 import React from "react";
 import { UserButton } from "@clerk/nextjs";
 import { usePathname } from "next/navigation";
@@ -15,7 +14,11 @@ const navItems = [
   { label: "Alerts", href: "/dashboard/alerts", icon: "🔔" },
 ];
 
-export default function Sidebar({ firstName, lastName, email }: {
+export default function Sidebar({
+  firstName,
+  lastName,
+  email,
+}: {
   firstName?: string | null;
   lastName?: string | null;
   email?: string;
@@ -23,24 +26,35 @@ export default function Sidebar({ firstName, lastName, email }: {
   const pathname = usePathname();
 
   return (
-    <aside style={{
-      width: 240,
-      background: "#0f0f0f",
-      borderRight: "1px solid #1f2937",
-      display: "flex",
-      flexDirection: "column",
-      padding: "24px 0",
-      position: "fixed",
-      top: 0,
-      left: 0,
-      height: "100vh",
-    }}>
-      <div style={{
-        padding: "0 20px 24px",
-        borderBottom: "1px solid #1f2937",
-        marginBottom: 16,
-      }}>
-        <div style={{ fontSize: 18, fontWeight: 700, color: "white", letterSpacing: "-0.5px" }}>
+    <aside
+      style={{
+        width: 240,
+        background: "#0f0f0f",
+        borderRight: "1px solid #1f2937",
+        display: "flex",
+        flexDirection: "column",
+        padding: "24px 0",
+        position: "fixed",
+        top: 0,
+        left: 0,
+        height: "100vh",
+      }}
+    >
+      <div
+        style={{
+          padding: "0 20px 24px",
+          borderBottom: "1px solid #1f2937",
+          marginBottom: 16,
+        }}
+      >
+        <div
+          style={{
+            fontSize: 18,
+            fontWeight: 700,
+            color: "white",
+            letterSpacing: "-0.5px",
+          }}
+        >
           TradeBotX
         </div>
         <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2 }}>
@@ -75,13 +89,15 @@ export default function Sidebar({ firstName, lastName, email }: {
         })}
       </nav>
 
-      <div style={{
-        padding: "16px 20px",
-        borderTop: "1px solid #1f2937",
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-      }}>
+      <div
+        style={{
+          padding: "16px 20px",
+          borderTop: "1px solid #1f2937",
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+        }}
+      >
         <UserButton afterSignOutUrl="/" />
         <div>
           <div style={{ fontSize: 13, color: "white", fontWeight: 500 }}>

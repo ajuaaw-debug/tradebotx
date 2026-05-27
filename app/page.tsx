@@ -1,43 +1,99 @@
 export default function Home() {
   return (
-    <main className="min-h-screen bg-[#0a0a0a] text-white flex flex-col items-center justify-center px-6">
-      <div className="max-w-3xl text-center">
-        <div className="inline-block bg-purple-500/10 border border-purple-500/20 text-purple-400 text-sm px-4 py-1.5 rounded-full mb-8">
-          Coming Soon — MVP in Development
+    <main style={{
+      minHeight: "100vh",
+      background: "#0a0a0a",
+      color: "white",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "0 24px",
+      fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif"
+    }}>
+      <div style={{ maxWidth: 700, textAlign: "center" }}>
+
+        <div style={{
+          display: "inline-block",
+          background: "rgba(168,85,247,0.1)",
+          border: "1px solid rgba(168,85,247,0.2)",
+          color: "#c084fc",
+          fontSize: 13,
+          padding: "6px 16px",
+          borderRadius: 99,
+          marginBottom: 32
+        }}>
+          MVP in Development
         </div>
 
-        <h1 className="text-5xl font-bold mb-6 bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+        <h1 style={{
+          fontSize: 48,
+          fontWeight: 700,
+          marginBottom: 20,
+          lineHeight: 1.15,
+          color: "white"
+        }}>
           AI Trading Bot Marketplace
         </h1>
 
-        <p className="text-gray-400 text-xl mb-12 leading-relaxed">
+        <p style={{
+          color: "#9ca3af",
+          fontSize: 20,
+          marginBottom: 48,
+          lineHeight: 1.7
+        }}>
           Browse, deploy, and profit from AI-powered trading bots.
           Built for serious traders.
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-20">
-          <button className="bg-purple-600 hover:bg-purple-500 text-white px-8 py-3 rounded-lg font-medium transition-colors">
+        <div style={{ display: "flex", gap: 16, justifyContent: "center", marginBottom: 80 }}>
+          <button style={{
+            background: "#7c3aed",
+            color: "white",
+            border: "none",
+            padding: "12px 32px",
+            borderRadius: 8,
+            fontSize: 15,
+            fontWeight: 500,
+            cursor: "pointer"
+          }}>
             Get Early Access
           </button>
-          <button className="border border-gray-700 hover:border-gray-500 text-gray-300 px-8 py-3 rounded-lg font-medium transition-colors">
+          <button style={{
+            background: "transparent",
+            color: "#d1d5db",
+            border: "1px solid #374151",
+            padding: "12px 32px",
+            borderRadius: 8,
+            fontSize: 15,
+            fontWeight: 500,
+            cursor: "pointer"
+          }}>
             View Roadmap
           </button>
         </div>
 
-        <div className="grid grid-cols-3 gap-8 border-t border-gray-800 pt-12">
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr 1fr",
+          gap: 32,
+          borderTop: "1px solid #1f2937",
+          paddingTop: 48
+        }}>
           <div>
-            <div className="text-3xl font-bold text-white mb-1">500+</div>
-            <div className="text-gray-500 text-sm">Trading strategies</div>
+            <div style={{ fontSize: 32, fontWeight: 700, marginBottom: 4 }}>500+</div>
+            <div style={{ color: "#6b7280", fontSize: 14 }}>Trading strategies</div>
           </div>
           <div>
-            <div className="text-3xl font-bold text-white mb-1">5</div>
-            <div className="text-gray-500 text-sm">Exchanges supported</div>
+            <div style={{ fontSize: 32, fontWeight: 700, marginBottom: 4 }}>5</div>
+            <div style={{ color: "#6b7280", fontSize: 14 }}>Exchanges supported</div>
           </div>
           <div>
-            <div className="text-3xl font-bold text-white mb-1">AI</div>
-            <div className="text-gray-500 text-sm">Bot generator</div>
+            <div style={{ fontSize: 32, fontWeight: 700, marginBottom: 4 }}>AI</div>
+            <div style={{ color: "#6b7280", fontSize: 14 }}>Bot generator</div>
           </div>
         </div>
+
       </div>
     </main>
   );
